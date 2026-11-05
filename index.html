@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CombatCore - Магазин Плагинов</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:linear-gradient(160deg,#1a1f2e 0%,#232a3d 40%,#2a3149 100%);min-height:100vh;color:#e8ecf3;padding:40px 20px;overflow-x:hidden}
+
+body::before,body::after{content:'';position:fixed;border-radius:50%;filter:blur(120px);z-index:-1;pointer-events:none}
+body::before{width:500px;height:500px;background:rgba(74,222,128,.12);top:-150px;left:-150px}
+body::after{width:450px;height:450px;background:rgba(99,102,241,.12);bottom:-150px;right:-150px}
+
+h1{font-size:2.3rem;text-align:center;margin-bottom:28px;background:linear-gradient(90deg,#4ade80,#86efac,#22c55e,#4ade80);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-size:200% auto;animation:shine 4s linear infinite;letter-spacing:.5px}
+@keyframes shine{to{background-position:200% center}}
+
+.tabs{display:flex;justify-content:center;gap:10px;margin-bottom:35px;flex-wrap:wrap;animation:fadeDown .6s ease}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-15px)}to{opacity:1;transform:translateY(0)}}
+.tab{padding:11px 28px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.65);font-size:.95rem;font-weight:600;cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1);font-family:inherit;backdrop-filter:blur(10px)}
+.tab:hover{background:rgba(255,255,255,.1);color:#fff;transform:translateY(-2px);border-color:rgba(74,222,128,.4)}
+.tab.active{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border-color:transparent;box-shadow:0 6px 20px rgba(34,197,94,.35);transform:translateY(-2px)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px;max-width:1100px;margin:0 auto;width:100%}
+
+.card{background:rgba(255,255,255,.045);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px;transition:all .3s cubic-bezier(.4,0,.2,1);animation:cardIn .5s ease both;position:relative;overflow:hidden}
+@keyframes cardIn{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.card.available{cursor:pointer;border-color:rgba(74,222,128,.25)}
+.card.available:hover{transform:translateY(-5px);border-color:rgba(74,222,128,.6);box-shadow:0 14px 35px rgba(34,197,94,.22);background:rgba(255,255,255,.07)}
+.card.available:active{transform:translateY(-2px) scale(.99)}
+.card.locked{cursor:not-allowed;opacity:.55;filter:grayscale(.6)}
+.card.locked:hover{opacity:.7}
+
+/* CSS-иконка доступного товара (скрещённые мечи) */
+.icon-swords{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;margin-bottom:14px;box-shadow:0 6px 18px rgba(34,197,94,.35);position:relative}
+.icon-swords::before,.icon-swords::after{content:'';position:absolute;width:4px;height:26px;border-radius:2px;background:linear-gradient(to bottom,#e8ecf3 60%,#22c55e 60%);top:50%;left:50%}
+.icon-swords::before{transform:translate(-50%,-50%) rotate(45deg)}
+.icon-swords::after{transform:translate(-50%,-50%) rotate(-45deg)}
+
+/* CSS-иконка замка для недоступных */
+.icon-lock{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#4b5563,#374151);display:flex;align-items:center;justify-content:center;margin-bottom:14px;position:relative}
+.icon-lock::before{content:'';position:absolute;top:11px;left:50%;transform:translateX(-50%);width:16px;height:13px;border:3px solid rgba(255,255,255,.55);border-bottom:none;border-radius:8px 8px 0 0}
+.icon-lock::after{content:'';position:absolute;bottom:11px;left:50%;transform:translateX(-50%);width:24px;height:18px;background:rgba(255,255,255,.55);border-radius:3px}
+
+.card h3{font-size:1.15rem;margin-bottom:6px;color:#fff;font-weight:700}
+.card.locked h3{color:rgba(255,255,255,.7)}
+.card p{font-size:.82rem;color:rgba(255,255,255,.45);line-height:1.45;margin-bottom:12px;min-height:34px}
+
+.badge{display:inline-block;padding:5px 13px;border-radius:20px;font-size:.72rem;font-weight:700;letter-spacing:.3px}
+.badge.av{background:rgba(34,197,94,.18);color:#86efac;border:1px solid rgba(34,197,94,.35)}
+.badge.lk{background:rgba(255,255,255,.06);color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.1)}
+
+/* CSS-иконка пустого ящика */
+.empty{text-align:center;padding:60px 20px;color:rgba(255,255,255,.35);font-size:1.05rem;animation:cardIn .5s ease both;grid-column:1/-1}
+.empty .box{width:64px;height:48px;margin:0 auto 16px;position:relative;opacity:.4}
+.empty .box::before{content:'';position:absolute;top:12px;left:0;width:100%;height:36px;border:3px solid rgba(255,255,255,.4);border-radius:4px}
+.empty .box::after{content:'';position:absolute;top:0;left:14%;width:72%;height:14px;border:3px solid rgba(255,255,255,.4);border-bottom:none;border-radius:4px 4px 0 0}
+
+.overlay{position:fixed;inset:0;background:rgba(10,15,25,.75);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;visibility:hidden;transition:opacity .3s ease,visibility .3s;padding:20px}
+.overlay.active{opacity:1;visibility:visible}
+.modal{background:linear-gradient(150deg,#232a3d,#1a1f2e);border:1px solid rgba(74,222,128,.28);border-radius:22px;padding:32px;width:100%;max-width:460px;position:relative;transform:scale(.94) translateY(16px);transition:transform .35s cubic-bezier(.4,0,.2,1);box-shadow:0 25px 60px rgba(0,0,0,.55)}
+.overlay.active .modal{transform:scale(1) translateY(0)}
+
+.close{position:absolute;top:12px;right:14px;background:none;border:none;color:rgba(255,255,255,.4);font-size:1.7rem;cursor:pointer;width:36px;height:36px;border-radius:50%;transition:all .25s;line-height:1;font-family:inherit}
+.close:hover{color:#fff;background:rgba(74,222,128,.15);transform:rotate(90deg)}
+
+.modal h2{font-size:1.55rem;margin-bottom:22px;background:linear-gradient(90deg,#4ade80,#86efac);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700}
+
+/* CSS-иконка коробки в заголовке модалки */
+.title-box{display:inline-block;width:20px;height:16px;position:relative;margin-right:9px;vertical-align:middle}
+.title-box::before{content:'';position:absolute;bottom:0;left:0;width:100%;height:11px;background:#4ade80;border-radius:2px}
+.title-box::after{content:'';position:absolute;top:0;left:15%;width:70%;height:6px;background:#86efac;border-radius:2px 2px 0 0}
+
+.btn{width:100%;padding:15px;border:none;border-radius:13px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-size:1.02rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 8px 24px rgba(34,197,94,.35);transition:all .25s cubic-bezier(.4,0,.2,1);margin-bottom:20px;font-family:inherit}
+.btn:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(34,197,94,.5)}
+.btn:active{transform:translateY(0) scale(.98)}
+.btn:disabled{opacity:.6;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* CSS-иконка стрелки скачивания */
+.icon-dl{width:18px;height:18px;position:relative;display:inline-block;flex-shrink:0}
+.icon-dl::before{content:'';position:absolute;left:50%;top:0;transform:translateX(-50%);width:3px;height:11px;background:#fff;border-radius:2px}
+.icon-dl::after{content:'';position:absolute;left:50%;top:7px;transform:translateX(-50%) rotate(45deg);width:8px;height:8px;border-right:3px solid #fff;border-bottom:3px solid #fff;border-radius:1px}
+
+.info{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:13px;padding:16px}
+.row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.87rem}
+.row:last-child{border:none}
+.row span:first-child{color:rgba(255,255,255,.45);flex-shrink:0}
+.row span:last-child{color:#bbf7d0;font-weight:600;text-align:right;word-break:break-word}
+
+.status{margin-top:14px;padding:11px;border-radius:10px;font-size:.84rem;text-align:center;display:none}
+.status.success{display:block;background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.3);color:#86efac}
+.status.loading{display:block;background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.3);color:#bbf7d0}
+
+/* CSS-иконка галочки */
+.icon-check{display:inline-block;width:13px;height:7px;border-left:2px solid #86efac;border-bottom:2px solid #86efac;transform:rotate(-45deg) translateY(-2px);margin-right:7px;vertical-align:middle}
+
+/* CSS-иконка часов */
+.icon-clock{display:inline-block;width:13px;height:13px;border:2px solid #bbf7d0;border-radius:50%;position:relative;margin-right:7px;vertical-align:middle}
+.icon-clock::before{content:'';position:absolute;top:2px;left:50%;width:1.5px;height:3px;background:#bbf7d0;transform:translateX(-50%)}
+.icon-clock::after{content:'';position:absolute;top:50%;left:50%;width:3px;height:1.5px;background:#bbf7d0;transform-origin:left center;transform:rotate(45deg)}
+
+.spinner{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:7px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:500px){h1{font-size:1.65rem}.modal{padding:24px}.grid{grid-template-columns:1fr}.tab{padding:9px 20px;font-size:.88rem}}
+</style>
+</head>
+<body>
+<h1>Магазин Плагинов</h1>
+
+<div class="tabs">
+<button class="tab active" data-tab="all" onclick="switchTab('all',this)">Все</button>
+<button class="tab" data-tab="java" onclick="switchTab('java',this)">Java</button>
+<button class="tab" data-tab="bedrock" onclick="switchTab('bedrock',this)">Bedrock</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="overlay" id="overlay" onclick="closeOnOverlay(event)">
+<div class="modal">
+<button class="close" onclick="closeModal()">×</button>
+<h2><span class="title-box"></span>CombatCore</h2>
+<button class="btn" id="btn" onclick="downloadFile()"><span class="icon-dl"></span>Скачать файл</button>
+<div class="status" id="status"></div>
+<div class="info">
+<div class="row"><span>Товар</span><span>CombatCore</span></div>
+<div class="row"><span>JAR файл</span><span>CombatCore-1.6.0.jar</span></div>
+<div class="row"><span>Minecraft</span><span>Java</span></div>
+<div class="row"><span>Зависимости</span><span>PlaceholderAPI, ViaVersion, ViaBackwards</span></div>
+</div>
+</div>
+</div>
+
+<script>
+const FILE_ID='1d08N9ohzpuReGSw68a4YkuKUwK5VQqxF';
+const FILE_NAME='CombatCore-1.6.0.jar';
+const URL=`https://drive.google.com/uc?export=download&id=${FILE_ID}`;
+
+const products=[
+{name:'CombatCore',desc:'Мощный плагин для добавления ПВП режима на сервер.',available:true,platform:'java'}
+];
+for(let i=1;i<=20;i++){
+products.push({name:'Недоступно',desc:'Разработчик плагинов ещё не сделал эти плагины, пожалуйста, подождите.',available:false,platform:'java'});
+}
+
+let currentTab='all';
+
+function render(){
+const grid=document.getElementById('grid');
+grid.innerHTML='';
+
+if(currentTab==='bedrock'){
+grid.innerHTML='<div class="empty"><div class="box"></div>Пусто</div>';
+return;
+}
+
+const list=currentTab==='java'?products.filter(p=>p.platform==='java'):products;
+
+list.forEach((p,idx)=>{
+const card=document.createElement('div');
+card.className='card '+(p.available?'available':'locked');
+card.style.animationDelay=(idx*0.025)+'s';
+
+if(p.available){
+card.innerHTML=`<div class="icon-swords"></div><h3>${p.name}</h3><p>${p.desc}</p><span class="badge av">Доступно</span>`;
+card.onclick=openModal;
+}else{
+card.innerHTML=`<div class="icon-lock"></div><h3>${p.name}</h3><p>${p.desc}</p><span class="badge lk">Недоступно</span>`;
+}
+grid.appendChild(card);
+});
+}
+
+function switchTab(tab,el){
+currentTab=tab;
+document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+el.classList.add('active');
+render();
+}
+
+function openModal(){document.getElementById('overlay').classList.add('active');document.body.style.overflow='hidden'}
+function closeModal(){document.getElementById('overlay').classList.remove('active');document.body.style.overflow=''}
+function closeOnOverlay(e){if(e.target===e.currentTarget)closeModal()}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+
+function downloadFile(){
+const btn=document.getElementById('btn'),st=document.getElementById('status');
+btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Загрузка...';
+st.className='status loading';st.innerHTML='<span class="icon-clock"></span>Файл скачивается в папку Downloads...';
+
+const a=document.createElement('a');
+a.href=URL;a.download=FILE_NAME;a.style.display='none';
+document.body.appendChild(a);a.click();document.body.removeChild(a);
+
+setTimeout(()=>{
+btn.disabled=false;btn.innerHTML='<span class="icon-dl"></span>Скачать файл';
+st.className='status success';st.innerHTML='<span class="icon-check"></span>Файл успешно скачан в папку Downloads!';
+},2000);
+setTimeout(()=>{st.className='status'},7000);
+}
+
+render();
+</script>
+</body>
+</html>
